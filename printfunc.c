@@ -1,75 +1,51 @@
-#include <stdlib.h>
 #include "main.h"
 
 /**
- * check_for_specifiers - checks for the validity of the format specifier
- * @format: format specified
- * Return pointer to valid function or Null
+ * _printf - formatted output conversion and print data.
+ * @format: input string.
  *
+ * Return: number of chars printed.
  */
-static int (*check_for_specifiers(const char *format))(va_list)
-{
-	unsigned int i;
-	print_t p[] = {
-		{"c", print_c},
-		{"s", print_s},
-		{"d", print_d},
-		{"i", print_i},
-		{"NULL", NULL}
-	}
-
-	for (i = 0; p[i].t != NULL, i++)
-	{
-		if ( *(p[i].t) == *format)
-		{
-			break;
-		}
-
-	}
-	return (p[i].f);
-}
-
-/**
- * _printf - print function
- * @format: list of argument types passed to the function
- * Return: number of characters printed
- */
-
 int _printf(const char *format, ...)
 {
-	unsigned int i = 0, count = 0;
-	va_list valist;
-	int (*f)(va_list);
+	unsigned int i = 0, len = 0, ibuf = 0;
+	va_list arguments;
+	int (*function)(va_list, char *, unsigned int);
+	char *buffer;
 
-	if (format == NULL)
+	va_start(arguments, format), buffer = malloc(sizeof(char) * 1024);
+	if (!format || !buffer || (format[i] == '%' && !format[i + 1]))
 		return (-1);
-	va_start(valist, format);
-	while (format[i])
+	if (!format[i])
+		return (0);
+	for (i = 0; format && format[i]; i++)
 	{
-		for (; format[i] != '%' && format[i]; i++)
+		if (format[i] == '%')
 		{
-			_putchar(format[i]);
-			count++;
+			if (format[i + 1] == '\0')
+			{	print_buf(buffer, ibuf), free(buffer), va_end(arguments);
+				return (-1);
+			}
+			else
+			{	function = get_print_func(format, i + 1);
+				if (function == NULL)
+				{
+					if (format[i + 1] == ' ' && !format[i + 2])
+						return (-1);
+					handl_buf(buffer, format[i], ibuf), len++, i--;
+				}
+				else
+				{
+					len += function(arguments, buffer, ibuf);
+					i += ev_print_func(format, i + 1);
+				}
+			} i++;
 		}
-		if (!format[i])
-			return (count);
-		f = check_for_specifiers(&format[i + 1]);
-		if (f != NULL)
-		{
-			count += f(valist);
-			i += 2;
-			continue;
-		}
-		if (!format[i + 1])
-			return (-1);
-		_putchar(format[i + 1]);
-		count++;
-		if (format[i + 1] == '%')
-			i += 2;
 		else
-			i++;
+			handl_buf(buffer, format[i], ibuf), len++;
+		for (ibuf = len; ibuf > 1024; ibuf -= 1024)
+			;
 	}
-	va_end(valist);
-	return (count);
-
+	print_buf(buffer, ibuf), free(buffer), va_end(arguments);
+	return (len);
 }
